@@ -1,0 +1,160 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Wub.ck by iliaskarim</title>
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="javascripts/respond.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <!--[if lt IE 8]>
+    <link rel="stylesheet" href="stylesheets/ie.css">
+    <![endif]-->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+  </head>
+  <body>
+
+      <div id="header">
+        <nav>
+          <li class="fork"><a href="https://github.com/iliaskarim/wub.ck">Fork On GitHub</a></li>
+          <li class="downloads"><a href="https://github.com/iliaskarim/wub.ck/zipball/master">ZIP</a></li>
+          <li class="downloads"><a href="https://github.com/iliaskarim/wub.ck/tarball/master">TAR</a></li>
+          <li class="title">DOWNLOADS</li>
+        </nav>
+      </div><!-- end header -->
+
+    <div class="wrapper">
+
+      <section>
+        <div id="title">
+          <h1>Wub.ck</h1>
+          <p>ChucK Bass Weapon</p>
+          <hr>
+          <span class="credits left">Project maintained by <a href="https://github.com/iliaskarim">iliaskarim</a></span>
+          <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="http://twitter.com/#!/michigangraham">mattgraham</a></span>
+        </div>
+
+        <p><em>Wub.ck</em> is a ChucK instrument developed by Ilias Karim for SLOrk, Stanford's Laptop Orchestra.</p>
+
+<h1>Development</h1>
+
+<h2>Audio Synthesis Patch</h2>
+
+<p>The original audio synthesis patch was taken from an example demonstrated by Hongchan during the first week of class. Here is the example in full:</p>
+
+<pre><code>// ------------------------------------------------------
+// SLOrk 2012 tutorial: ex2
+//
+// hongchan@ccrma.stanford.edu
+// ------------------------------------------------------
+
+// a synth patch
+SawOsc s =&gt; ResonZ res =&gt; Envelope e =&gt; NRev r =&gt; dac;
+e =&gt; Delay d =&gt; r;
+d =&gt; Gain feedback =&gt; d;
+
+// setting initial parameters for UGens
+0.3 =&gt; s.gain;
+25::ms =&gt; e.duration;
+1::second =&gt; d.max;
+250::ms =&gt; d.delay;
+0.25 =&gt; feedback.gain;
+0.2 =&gt; r.mix;
+
+// a timed loop
+while ( true )
+{
+    // changing parameters
+    Std.rand2(2, 6) * 220 =&gt; float basefreq;
+    basefreq =&gt; s.freq;
+    basefreq * 1.2 =&gt; res.freq;
+    Std.rand2f(5, 12) =&gt; res.Q;
+
+    // triggering/releasing a note
+    e.keyOn();
+    25::ms =&gt; now;
+    e.keyOff();
+    100::ms =&gt; now;
+}
+</code></pre>
+
+<p>Note: the base note frequency is much higher in this example than later.</p>
+
+<h2>miniAudicle User Interface (MAUI)</h2>
+
+<p>Since it was my first time getting down and dirty with ChucK, I wanted to explore the sounds that I could synthesize. The best method to do so seemed to parameterize the entire example Hongchan had given us using MAUI (see links below). </p>
+
+<h2>TrackPad and Keyboard Input</h2>
+
+<p>After setting proper defaults and ranges for the parameters of my instrument, I mapped play to the space bar and some of the more interesting settings to the Magic TrackPad. Keyboard support is well-documented, but my Magic TrackPad didn't work until I used this bit of ChucK which leverages a private API:</p>
+
+<pre><code>spork ~ handleMultitouch();
+
+fun void handleMultitouch()
+{
+    Hid hi;
+    hi.open(7, 0);
+
+    HidMsg msg;
+
+    while(true)
+    {
+        hi =&gt; now;
+        while(hi.recv(msg))
+        {
+            &lt;&lt;&lt; msg.which, msg.touchX, msg.touchY, msg.touchSize &gt;&gt;&gt;;
+        }
+    }
+}
+</code></pre>
+
+<p>Note: Depending on your setup, you may have to change <code>hi.open(7, 0);</code> to <code>hi.open(7, 1);</code><br>
+Note: Even though this code support multi-touch, at this point my instrument only supports one touch</p>
+
+<h2>First Performance</h2>
+
+<p><a href="http://youtu.be/NiGm5fYPRqE">Video and audio capture of performance on YouTube</a></p>
+
+<p><a href="https://raw.github.com/iliaskarim/wub.ck/34a7f61a66dede72196972723c14f2edb95dba4b/wub.ck">Wub.ck @ 34a7f61a66dede72196972723c14f2edb95dba4b</a></p>
+
+<p>For this performance, I programmed the instrument to play four notes at the MIDI note specified, followed by four notes a minor third higher, and then repeat. Each note is individually played back by space bar and played in time with two delayed triplets decaying in a feedback loop. I simultaneously adjust the parameters of each note via TrackPad using two different mappings toggled with TAB. Turn your subwoofer up for this one!</p>
+
+<h3>Controls:</h3>
+
+<ul>
+<li>Space - Play</li>
+<li>Tab - Alter TrackPad mapping:</li>
+<li>1. Manual mouse control</li>
+<li>2. Feedback gain (y) / delay duration (x)</li>
+<li>3.  Resonance Q parameter (y) /  Resonance frequency scale (x)</li>
+</ul><h2>Resources &amp; Links</h2>
+
+<ul>
+<li>
+<a href="http://audicle.cs.princeton.edu/mini/mac/">miniAudicle</a><br>
+</li>
+<li>
+<a href="http://chuck.cs.princeton.edu/doc/program/ugen.html">ChucK Programming Guide: Unit Generators</a><br>
+</li>
+<li>
+<a href="http://chuck.cs.princeton.edu/doc/examples/">ChucK Examples</a><br>
+</li>
+<li>
+<a href="http://audicle.cs.princeton.edu/mini/mac/doc/maui_api.html">miniAudicle User Interface Elements API</a><br>
+</li>
+<li>
+<a href="http://www.dtic.upf.edu/%7Egcoleman/chuck/tutorial/tutorial.html">Notes on ChucK for Music</a><br>
+</li>
+</ul>
+      </section>
+
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><!--<![endif]-->
+    
+  </body>
+</html>
