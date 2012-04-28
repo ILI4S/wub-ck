@@ -4,15 +4,118 @@
 // dx.xb
 //
 
+
+class LED_Grid
+{
+    float m_x;
+    0 => float m_xMin; 
+    1 => float m_xMax;
+    
+    float m_y;
+    0 => float m_yMin; 
+    1 => float m_yMax;
+    
+    MAUI_LED m_leds[19][19];
+    
+    fun void _redraw()
+    {
+        ((m_x / (m_xMax - m_xMin) + m_xMin) * m_leds.size()) $ int => int x;
+        ((m_y / (m_yMax - m_yMin) + m_yMin) * m_leds.size()) $ int => int y;
+        m_leds.size() - y - 1 => y;
+        
+        for (0 => int i; i < m_leds.size(); i++)
+        {
+            m_leds[i] @=> MAUI_LED leds[];
+            
+            for (0 => int j; j < leds.size(); j++)
+            {
+                leds[j] @=> MAUI_LED led;
+                
+                if (x == i && y == j)
+                    led.light();
+                else
+                    led.unlight();
+            }
+        }
+    }
+    
+    fun void setXRange(float xMin, float xMax)
+    {
+        xMin => m_xMin;
+        xMax => m_xMax;
+    }
+    
+    fun void setYRange(float yMin, float yMax)
+    {
+        yMin => m_yMin;
+        yMax => m_yMax;
+    }
+    
+    fun void setPoint(float x, float y)
+    {
+        x => m_x;
+        y => m_y;
+        this._redraw();
+    }
+    
+    fun void addToView(MAUI_View view, float x, float y)
+    {
+        for (0 => int i; i < m_leds.size(); i++)
+        {
+            m_leds[i] @=> MAUI_LED leds[];
+            
+            for (0 => int j; j < leds.size(); j++)
+            {
+                leds[j] @=> MAUI_LED led;
+                led.position(x + i * 30, y + j * 30);
+                view.addElement(led);
+            }
+        }
+    }           
+}
+
+class Controls
+{
+    MAUI_View m_view;
+    float m_xOffset, m_yOffset;
+    
+    MAUI_Slider m_sliders[0];
+    
+    fun void addToView(MAUI_View view, float x, float y)
+    {
+        view @=> m_view;
+        x => m_xOffset;
+        y => m_yOffset;
+    }
+    
+    fun void newSlider(string name, float min, float max, float value)
+    {
+        MAUI_Slider slider;
+        name => slider.name;
+        slider.range(min, max);
+        slider.value(value);
+        slider.position(0, 0);
+        
+        <<< m_sliders.size() >>>;
+        
+        slider @=> m_sliders[name];
+        m_view.addElement(slider);
+    }
+}
+
 MAUI_View view;
 view.name("dx.xb");
-view.size(240, 610);
+view.size(850, 610);
 view.display();
 
-MAUI_LED led;
-led.color(led.red);
-view.addElement(led);
-led.position(85, 0);
+LED_Grid grid;
+grid.addToView(view, 220, 0);
+
+Controls controls;
+controls.addToView(view, 0, 0);
+controls.newSlider("test", 0, 50, 25);
+
+
 
 MAUI_Slider freqSlider;
 "freq" => freqSlider.name;
@@ -132,6 +235,25 @@ for (0 => int i; i < NUM_CHANNELS; i++)
 
 0 => int counter;
 
+fun void noteOn()
+{
+                        e.keyOn();
+                    counter++;
+                    counter % 8 => counter;
+                    
+                    <<< counter >>>;
+                     
+                    if (counter == 0)
+                        0 => offset;
+                    else if (counter == 4)
+                        3 => offset;
+}
+
+fun void noteOff()
+{
+                    e.keyOff();
+
+}
 
 spork ~ handleKB();                                                                                   
 fun void handleKB()
@@ -170,24 +292,13 @@ fun void handleKB()
             if (msg.ascii == 32)
             {
                 if (msg.isButtonDown())      
-                {                                                        
-                    e.keyOn();
-                    led.light();
-                    counter++;
-                    counter % 8 => counter;
-                    
-                    <<< counter >>>;
-                     
-                    if (counter == 0)
-                        0 => offset;
-                    else if (counter == 4)
-                        3 => offset;
+                {      
+                    noteOn();                                                  
                 }
                 
                 else if (msg.isButtonUp()) 
                 {
-                    e.keyOff();
-                    led.unlight();
+                    noteOff();
                 }
             }
             
@@ -223,7 +334,7 @@ fun void handleMultitouch()
         hi => now;
         while(hi.recv(msg))
         {
-            //<<<  >>>;
+        grid.setPoint(msg.touchX, msg.touchY);
             
             if (buttons[2].state())
             {
@@ -243,6 +354,30 @@ fun void handleMultitouch()
 }
 
 
+spork ~ handleMouse();
+fun void handleMouse()
+{
+    Hid hi;
+     HidMsg msg;
+    hi.openMouse(0);
+
+    while (1)
+    {
+        hi => now;
+        while( hi.recv( msg ) )
+        {
+            if( msg.isButtonDown() )
+            {
+                noteOn();
+            } 
+            else if (msg.isButtonUp())
+            {
+                noteOff();
+            }
+        }
+    }
+
+}
 
 // inifinite loop
 while (1)
